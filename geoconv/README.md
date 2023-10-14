@@ -26,7 +26,9 @@ This repository is still in development. It was tested using **Python 3.10.11**.
    
 3. If one wishes to use a GPU (compare https://www.tensorflow.org/install/pip):
    ```bash
-   conda install -c conda-forge cudatoolkit=11.8.0
+   #conda install -c conda-forge cudatoolkit=11.8.0
+   # added command to replace above command
+   conda install cuda-libraries cuda-nvcc cuda-nvtx cuda-cupti -c nvidia/label/cuda-11.8.0  
    python3 -m pip install nvidia-cudnn-cu11==8.6.0.163
    mkdir -p $CONDA_PREFIX/etc/conda/activate.d
    echo 'CUDNN_PATH=$(dirname $(python -c "import nvidia.cudnn;print(nvidia.cudnn.__file__)"))' >> $CONDA_PREFIX/etc/conda/activate.d/env_vars.sh
