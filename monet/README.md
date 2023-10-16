@@ -6,7 +6,7 @@ This is a Pytorch implementation of Gaussian Mixture Model Convolutional Network
 
 Monti *et al*, [Geometric deep learning on graphs and manifolds using mixture model CNNs](https://arxiv.org/abs/1611.08402) (CVPR 2017)
 
-Pre-trained `.pth` files are provided as well as `eval.txt` showing training/test losses and accuracies on query mesh correspondences with the reference mesh.
+Pre-trained `.pth` files are provided as well as `losses.txt` showing training/test losses and accuracies on query mesh correspondences with the reference mesh.
 
 ## Requirements
 * [Pytorch](https://pytorch.org/) (1.3.0)
