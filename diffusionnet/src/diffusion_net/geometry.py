@@ -632,6 +632,59 @@ def compute_hks_autoscale(evals, evecs, count):
     scales = torch.logspace(-2, 0., steps=count, device=evals.device, dtype=evals.dtype)
     return compute_hks(evals, evecs, scales)
 
+def compute_shot(verts,faces,radius=100.0,local_rf_radius=None,min_neighbors=3,n_bins=20,double_volumes_sectors=True,use_interpolation=True,use_normalization=True):
+    """
+    Returns the SHOT descriptors of a mesh point cloud. (from https://github.com/uhlmanngroup/pyshot/pyshot.pyx)
+    
+    Parameters
+    ------------
+    verts : (n, 3) float
+      Array of vertex locations.
+    faces : (m, 3)  int
+      Array of triangular faces.
+    radius: float
+      Radius for querying neighbours.
+    local_rf_radius: float
+      Radius of the Reference Frame neighbourhood.
+    min_neighbors: int
+      Minimum number of neighbours to use. 
+    n_bins:int
+      The number of bins for the histogram
+    double_volumes_sectors: bool
+      Double the maximum number of volume angular sectors for descriptor.
+    use_interpolation: bool
+      Use interpolation during computations.    
+    use_normalization: bool
+      Normalize during computations.    
+      
+    Returns
+    ----------
+    descr: (n, d) float
+      Array containing the d SHOT descriptors for the n points,
+      where d = 16 * (n_bins + 1) * (double_volumes_sectors + 1).
+      Default values result in: d = 16 * (20 + 1) * (1 + 1) = 672
+    """
+    import pyshot # rely on pyshot being installed, see https://github.com/uhlmanngroup/pyshot
+    if verts is None or faces is None:
+        raise RuntimeError("Provided empty vertices and/or faces to compute SHOT descriptors")
+    # else: # in case someone provides different type than np array
+    #     verts=np.array(verts)
+    #     faces=np.array(faces)
+ 
+    #check if provided local reference frame radius, else set it to the radius
+    local_rf_radius = radius if local_rf_radius is None else local_rf_radius
+    return pyshot.get_descriptors(
+                                verts,
+                                faces,
+                                radius,
+                                local_rf_radius,
+                                min_neighbors,
+                                n_bins,
+                                double_volumes_sectors,
+                                use_interpolation,
+                                use_normalization,
+                                )
+
 def normalize_positions(pos, faces=None, method='mean', scale_method='max_rad'):
     # center and unit-scale positions
 
