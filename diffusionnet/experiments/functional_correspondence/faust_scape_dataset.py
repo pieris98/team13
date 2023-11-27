@@ -30,6 +30,8 @@ class FaustScapeDataset(Dataset):
         self.faces_list = []
         self.vts_list = []
         self.names_list = []
+        self.shot_list = []
+        self.lps_list = []
 
         # set combinations
         n_train = {'faust':80, 'scape':51}[self.name]
@@ -57,6 +59,7 @@ class FaustScapeDataset(Dataset):
                     self.gradX_list,
                     self.gradY_list,
                     self.hks_list,
+                    self.shot_list,
                     self.vts_list,
                     self.names_list
                 ) = torch.load(load_cache)
@@ -89,6 +92,25 @@ class FaustScapeDataset(Dataset):
 
             verts, faces = pp3d.read_mesh(mesh_files[iFile])
             vts_file = np.loadtxt(vts_files[iFile]).astype(int) - 1 # convert from 1-based indexing
+            
+            # SHOT features
+            # (n, d) float Array containing the d SHOT descriptors for the n points,
+            # where d = 16 * (n_bins + 1) * (double_volumes_sectors + 1).
+            # default values result in d=672
+            shot = diffusion_net.geometry.compute_shot(
+                                verts=verts,
+                                faces=faces)
+            self.shot_list.append(shot)
+
+            # LPS features
+            # (n, d) float Array containing the d LPS descriptors for the n points,
+            # where d = 16 * (n_bins + 1) * (double_volumes_sectors + 1).
+            # default values result in d = 48
+            lps = diffusion_net.geometry.compute_lps(
+                                verts=verts,
+                                faces=faces)
+            self.lps_list.append(lps)
+
 
             # to torch
             verts = torch.tensor(np.ascontiguousarray(verts)).float()
@@ -125,6 +147,7 @@ class FaustScapeDataset(Dataset):
         self.hks_list = [diffusion_net.geometry.compute_hks_autoscale(self.evals_list[i], self.evecs_list[i], 16)
                          for i in range(len(self.L_list))]
 
+
         # save to cache
         if use_cache:
             diffusion_net.utils.ensure_dir_exists(self.cache_dir)
@@ -140,6 +163,7 @@ class FaustScapeDataset(Dataset):
                     self.gradX_list,
                     self.gradY_list,
                     self.hks_list,
+                    self.shot_list,
                     self.vts_list,
                     self.names_list,
                 ),
@@ -163,6 +187,7 @@ class FaustScapeDataset(Dataset):
             self.gradX_list[idx1],
             self.gradY_list[idx1],
             self.hks_list[idx1],
+            self.shot_list[idx1],
             self.vts_list[idx1],
             self.names_list[idx1],
         ]
@@ -178,19 +203,22 @@ class FaustScapeDataset(Dataset):
             self.gradX_list[idx2],
             self.gradY_list[idx2],
             self.hks_list[idx2],
+            self.shot_list[idx2],
             self.vts_list[idx2],
             self.names_list[idx2],
         ]
 
         # Compute the ground-truth functional map between the pair
-        vts1, vts2 = shape1[10], shape2[10]
+        vts1, vts2 = shape1[11], shape2[11]
         evec_1, evec_2 = shape1[6][:, :self.n_fmap], shape2[6][:, :self.n_fmap]
         evec_1_a, evec_2_a = evec_1[vts1,:], evec_2[vts2,:]
-        solve_out = torch.lstsq(evec_2_a, evec_1_a)[0] # TODO replace with torch.linalg version in future torch
+        
+        # TODO replace with torch.linalg version in future torch
+        solve_out = torch.lstsq(evec_2_a, evec_1_a)[0] 
         C_gt = solve_out[:evec_1_a.size(-1)].t()
         resids = solve_out[evec_1_a.size(-1):]
 
-        # Alternately, do it with numpy instead:
+        #Alternately, do it with numpy instead:
         # solve_out = np.linalg.lstsq(toNP(evec_1_a), toNP(evec_2_a), rcond=None)
         # C_gt = solve_out[0]
         # C_gt = torch.Tensor(C_gt.T)

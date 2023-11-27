@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
 parser.add_argument("--train_dataset", type=str, default="faust", help="what dataset to train on")
 parser.add_argument("--test_dataset", type=str, default="faust", help="what dataset to test on")
-parser.add_argument("--input_features", type=str, help="what features to use as input ('xyz' or 'hks') default: hks", default = 'hks')
+parser.add_argument("--input_features", type=str, help="what features to use as input ('xyz','hks' or 'shot') default: hks", default = 'hks')
 parser.add_argument("--load_model", type=str, help="path to load a pretrained model from")
 args = parser.parse_args()
 
@@ -34,7 +34,7 @@ device = torch.device('cuda')
 dtype = torch.float32
 
 # model 
-input_features = args.input_features # one of ['xyz', 'hks']
+input_features = args.input_features # one of ['xyz', 'hks','shot']
 k_eig = 128
 
 # functional maps settings
@@ -44,7 +44,7 @@ lambda_param = 1e-3 # functional map block regularization parameter
 
 # training settings
 train = not args.evaluate
-n_epoch = 5
+n_epoch = 50
 lr = 5e-4
 decay_every = 9999
 decay_rate = 0.1
@@ -72,7 +72,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=None, shuffle
 
 # === Create the model
 
-C_in={'xyz':3, 'hks':16}[input_features] # dimension of input features
+C_in={'xyz':3, 'hks':16, 'shot':672}[input_features] # dimension of input features
 
 model = FunctionalMapCorrespondenceWithDiffusionNetFeatures(
                         n_feat=n_feat,
@@ -184,11 +184,11 @@ def test(with_geodesic_error=False):
                 verts1 = shape1[0]
                 faces1 = shape1[1]
                 evec1 = shape1[6]
-                vts1 = shape1[10]
+                vts1 = shape1[11]
                 verts2 = shape2[0]
                 faces2 = shape2[1]
                 evec2 = shape2[6]
-                vts2 = shape2[10]
+                vts2 = shape2[11]
 
                 # construct a vertex-to-vertex map via nearest neighbors from the functional map
                 evec1_on_2 = evec1[:,:n_fmap] @ C_pred.squeeze(0).transpose(0,1)

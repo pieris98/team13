@@ -46,7 +46,7 @@ class FunctionalMapCorrespondenceWithDiffusionNetFeatures(nn.Module):
     def __init__(self, n_feat=128, n_fmap=30, lambda_=1e-3, input_features="xyz", lambda_param=1e-3):
         super().__init__()
 
-        C_in={'xyz':3, 'hks':16}[input_features] # dimension of input features
+        C_in={'xyz':3, 'hks':16,'shot':672}[input_features] # dimension of input features
 
         self.feature_extractor = diffusion_net.layers.DiffusionNet(
             C_in=C_in,
@@ -61,14 +61,17 @@ class FunctionalMapCorrespondenceWithDiffusionNetFeatures(nn.Module):
         self.lambda_param = lambda_param
 
     def forward(self, shape1, shape2):
-        verts1, faces1, frames1, mass1, L1, evals1, evecs1, gradX1, gradY1, hks1, vts1 = shape1
-        verts2, faces2, frames2, mass2, L2, evals2, evecs2, gradX2, gradY2, hks2, vts2 = shape2
+        verts1, faces1, frames1, mass1, L1, evals1, evecs1, gradX1, gradY1, hks1, shot1, vts1 = shape1
+        verts2, faces2, frames2, mass2, L2, evals2, evecs2, gradX2, gradY2, hks2, shot2, vts2 = shape2
 
         # set features
         if self.input_features == "xyz":
             features1, features2 = verts1, verts2
         elif self.input_features == "hks":
             features1, features2 = hks1, hks2
+        elif self.input_features == "shot":
+            features1, features2 = shot1.to(torch.float), shot2.to(torch.float)
+        
 
         feat1 = self.feature_extractor(features1, mass1, L=L1, evals=evals1, evecs=evecs1,
                                        gradX=gradX1, gradY=gradY1, faces=faces1)
