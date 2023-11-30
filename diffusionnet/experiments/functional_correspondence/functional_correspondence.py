@@ -219,23 +219,25 @@ def test(with_geodesic_error=False):
 
 if train:
     with open('training_results.txt', 'a') as file:
-        file.write("Training...\n")
+        print("Training...\n")
 
         for epoch in range(n_epoch):
             train_loss = train_epoch(epoch)
             test_loss, test_geodesic_error = test(with_geodesic_error=True)
             epoch_result = "Epoch {} - Train overall: {:.5e}  Test overall: {:.5e}  Test geodesic error: {:.5e}\n".format(epoch, train_loss, test_loss, test_geodesic_error)
             print(epoch_result)
-            file.write("{:.5e};{:.5e};{:.5e}".format(train_loss,test_loss,test_geodesic_error))
+            file_line = "{:.5e};{:.5e};{:.5e}\n".format(train_loss,test_loss,test_geodesic_error
+            file.write(file_line))
 
             save_message = " ==> saving last model to " + model_save_path + "\n"
             print(save_message)
             torch.save(model.state_dict(), model_save_path)
 
 # Test
-with open('training_results.txt', 'a') as file:
+with open('test_results.txt', 'a') as file:
     mean_loss, mean_geodesic_error = test(with_geodesic_error=True)
     test_result = "Overall test accuracy: {:.5e}  geodesic error: {:.5e}\n".format(mean_loss, mean_geodesic_error)
     print(test_result)
-    file.write(test_result)
+    test_line = "{:.5e};{:.5e}\n".format(mean_loss, mean_geodesic_error)
+    file.write(test_line)
 

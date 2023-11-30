@@ -65,8 +65,13 @@ class FunctionalMapCorrespondenceWithDiffusionNetFeatures(nn.Module):
         # print("SHAPE 1 LENGTH",len(shape1))
         # print("SHAPE 2 LENGTH",len(shape2))
 
-        verts1, faces1, frames1, mass1, L1, evals1, evecs1, gradX1, gradY1, hks1, vts1, mma1,lps1 = shape1
-        verts2, faces2, frames2, mass2, L2, evals2, evecs2, gradX2, gradY2, hks2, vts2, mma2,lps2 = shape2
+        ## with mma and shot
+        # verts1, faces1, frames1, mass1, L1, evals1, evecs1, gradX1, gradY1, hks1, vts1,  mma1, shot1, lps1 = shape1
+        # verts2, faces2, frames2, mass2, L2, evals2, evecs2, gradX2, gradY2, hks2, vts2,  mma2, shot2, lps2 = shape2
+        
+        # without mma and shot
+        verts1, faces1, frames1, mass1, L1, evals1, evecs1, gradX1, gradY1, hks1, vts1,  lps1 = shape1
+        verts2, faces2, frames2, mass2, L2, evals2, evecs2, gradX2, gradY2, hks2, vts2,  lps2 = shape2
 
         # print("HKS1 SHAPES MATCH MMA1 SHAPES",len(hks1)==len(mma1))
         # print("HKS2 SHAPES MATCH MMA2 SHAPES",len(hks2)==len(mma2))

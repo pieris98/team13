@@ -35,7 +35,7 @@ class FaustScapeDataset(Dataset):
         self.vts_list = []
         self.names_list = []
         # SHOT features calculated with pyshot (see comment in geometry.py)
-        self.shot_list = []
+        # self.shot_list = []
         self.lps_list = []
         # Our version of LPS (Local Point Signatures) features precomputed from https://github.com/yiqun-wang/LPS-matlab/tree/master and stored in lps.pt
         # Each FAUST mesh shape has LPS features shape (num_vertices, 48) 
@@ -76,7 +76,7 @@ class FaustScapeDataset(Dataset):
                     self.hks_list,
                     self.vts_list,
                     self.mma_list,
-                    self.shot_list,
+                    # self.shot_list,
                     self.lps_list,
                     self.names_list
                  
@@ -126,10 +126,11 @@ class FaustScapeDataset(Dataset):
             # (n, d) float Array containing the d SHOT descriptors for the n points,
             # where d = 16 * (n_bins + 1) * (double_volumes_sectors + 1).
             # default values result in d=672
-            shot = diffusion_net.geometry.compute_shot(
-                                verts=verts,
-                                faces=faces)
-            self.shot_list.append(shot)
+            
+            ## shot = diffusion_net.geometry.compute_shot(
+            #                    # verts=verts,
+            #                    # faces=faces)
+            ## self.shot_list.append(shot)
 
             # to torch
             verts = torch.tensor(np.ascontiguousarray(verts)).float()
@@ -190,7 +191,7 @@ class FaustScapeDataset(Dataset):
                     self.hks_list,
                     self.vts_list,
                     self.mma_list,
-                    self.shot_list,
+                    # self.shot_list,
                     self.lps_list,
                     # self.heat_tensors,
                     # self.wave_tensors,
@@ -218,7 +219,7 @@ class FaustScapeDataset(Dataset):
             self.hks_list[idx1],
             self.vts_list[idx1],
             # self.mma_list[idx1],
-            self.shot_list[idx1],
+            # self.shot_list[idx1],
             self.lps_list[idx1],
             self.names_list[idx1]
             # self.lps_list[idx1],
@@ -238,7 +239,7 @@ class FaustScapeDataset(Dataset):
             self.hks_list[idx2],
             self.vts_list[idx2],
             # self.mma_list[idx2],
-            self.shot_list[idx2],
+            # self.shot_list[idx2],
             self.lps_list[idx2],
             self.names_list[idx2]
 
