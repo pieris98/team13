@@ -664,13 +664,15 @@ def compute_shot(verts,faces,radius=100.0,local_rf_radius=None,min_neighbors=3,n
       where d = 16 * (n_bins + 1) * (double_volumes_sectors + 1).
       Default values result in: d = 16 * (20 + 1) * (1 + 1) = 672
     """
+    sys.path.insert(0, '../../..')
+    sys.path.insert(0, '../')
     import pyshot # rely on pyshot being installed, see https://github.com/uhlmanngroup/pyshot
     if verts is None or faces is None:
         raise RuntimeError("Provided empty vertices and/or faces to compute SHOT descriptors")
     # else: # in case someone provides different type than np array
     #     verts=np.array(verts)
     #     faces=np.array(faces)
- 
+
     #check if provided local reference frame radius, else set it to the radius
     local_rf_radius = radius if local_rf_radius is None else local_rf_radius
     return pyshot.get_descriptors(
