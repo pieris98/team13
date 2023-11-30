@@ -3,10 +3,14 @@ import sys
 from itertools import permutations, combinations
 import numpy as np
 
+from signature import SignatureExtractor
+
 import torch
 from torch.utils.data import Dataset
 
 import potpourri3d as pp3d
+
+import trimesh
 
 sys.path.append(os.path.join(os.path.dirname(__file__), "../../src/"))  # add the path to the DiffusionNet src
 import diffusion_net
@@ -30,8 +34,17 @@ class FaustScapeDataset(Dataset):
         self.faces_list = []
         self.vts_list = []
         self.names_list = []
-        self.shot_list = []
-        self.lps_list = []
+        # SHOT features calculated with pyshot (see comment in geometry.py)
+        # self.shot_list = []
+        # self.lps_list = []
+        # Our version of LPS (Local Point Signatures) features precomputed from https://github.com/yiqun-wang/LPS-matlab/tree/master and stored in lps.pt
+        # Each FAUST mesh shape has LPS features shape (num_vertices, 48) 
+        # self.lps_list = torch.load(os.path.join(root_dir, name, "lps.pt"))
+        # Our computation of Wave Kernel Signature & our version of HKS computation
+        # self.wave_tensors_list = list(map(torch.from_numpy,torch.load(os.path.join(root_dir, name, "wave_tensors.pt"))))
+        # self.heat_tensors_list = list(map(torch.from_numpy,torch.load(os.path.join(root_dir, name, "heat_tensors.pt"))))
+        
+        self.mma_list = []
 
         # set combinations
         n_train = {'faust':80, 'scape':51}[self.name]
@@ -59,9 +72,11 @@ class FaustScapeDataset(Dataset):
                     self.gradX_list,
                     self.gradY_list,
                     self.hks_list,
-                    self.shot_list,
                     self.vts_list,
+                    self.mma_list,
                     self.names_list
+                    # self.lps_list,
+                    # self.shot_list,
                 ) = torch.load(load_cache)
                 return
             print("  --> dataset not in cache, repopulating")
@@ -85,8 +100,20 @@ class FaustScapeDataset(Dataset):
 
         mesh_files, vts_files = sorted(mesh_files), sorted(vts_files)
 
+        heat_tensors = []
+        wave_tensors = []
+
         # Load the actual files
         for iFile in range(len(mesh_files)):
+
+            # WKS and HKS
+            mesh = trimesh.load(mesh_files[iFile])
+            extractor = SignatureExtractor(mesh, 100, approx='beltrami')
+            heat_fs, ts = extractor.signatures(64, 'heat', return_x_ticks=True)
+            wave_fs = extractor.signatures(128, 'wave')
+            heat_tensors.append(torch.from_numpy(heat_fs))
+            wave_tensors.append(torch.from_numpy(wave_fs))
+            ##############
 
             print("loading mesh " + str(mesh_files[iFile]))
 
@@ -97,20 +124,10 @@ class FaustScapeDataset(Dataset):
             # (n, d) float Array containing the d SHOT descriptors for the n points,
             # where d = 16 * (n_bins + 1) * (double_volumes_sectors + 1).
             # default values result in d=672
-            shot = diffusion_net.geometry.compute_shot(
-                                verts=verts,
-                                faces=faces)
-            self.shot_list.append(shot)
-
-            # LPS features
-            # (n, d) float Array containing the d LPS descriptors for the n points,
-            # where d = 16 * (n_bins + 1) * (double_volumes_sectors + 1).
-            # default values result in d = 48
-            lps = diffusion_net.geometry.compute_lps(
-                                verts=verts,
-                                faces=faces)
-            self.lps_list.append(lps)
-
+            # shot = diffusion_net.geometry.compute_shot(
+            #                     verts=verts,
+            #                     faces=faces)
+            # self.shot_list.append(shot)
 
             # to torch
             verts = torch.tensor(np.ascontiguousarray(verts)).float()
@@ -146,10 +163,16 @@ class FaustScapeDataset(Dataset):
 
         self.hks_list = [diffusion_net.geometry.compute_hks_autoscale(self.evals_list[i], self.evecs_list[i], 16)
                          for i in range(len(self.L_list))]
+        
+        for i in range(len(self.hks_list)):
+            if len(self.verts_list[i]) != len(heat_tensors[i]):
+                print("There are {} verts but {} heat tensors on {}".format(len(self.verts_list[i]), len(heat_tensors[i]), i))
 
+        self.mma_list = [torch.cat([self.verts_list[i],heat_tensors[i],wave_tensors[i]], dim=-1) for i in range(len(heat_tensors))]
 
         # save to cache
         if use_cache:
+
             diffusion_net.utils.ensure_dir_exists(self.cache_dir)
             torch.save(
                 (
@@ -163,9 +186,11 @@ class FaustScapeDataset(Dataset):
                     self.gradX_list,
                     self.gradY_list,
                     self.hks_list,
-                    self.shot_list,
                     self.vts_list,
-                    self.names_list,
+                    self.mma_list,
+                    self.names_list
+                    # self.lps_list,
+                    # self.shot_list,
                 ),
                 load_cache,
             )
@@ -187,9 +212,11 @@ class FaustScapeDataset(Dataset):
             self.gradX_list[idx1],
             self.gradY_list[idx1],
             self.hks_list[idx1],
-            self.shot_list[idx1],
             self.vts_list[idx1],
-            self.names_list[idx1],
+            self.mma_list[idx1],
+            self.names_list[idx1]
+            # self.lps_list[idx1],
+            # self.shot_list[idx1],
         ]
 
         shape2 = [
@@ -203,18 +230,20 @@ class FaustScapeDataset(Dataset):
             self.gradX_list[idx2],
             self.gradY_list[idx2],
             self.hks_list[idx2],
-            self.shot_list[idx2],
             self.vts_list[idx2],
-            self.names_list[idx2],
+            self.mma_list[idx2],
+            self.names_list[idx2]
+            # self.lps_list[idx2],
+            # self.shot_list[idx2],
         ]
 
         # Compute the ground-truth functional map between the pair
-        vts1, vts2 = shape1[11], shape2[11]
+        vts1, vts2 = shape1[10], shape2[10]
         evec_1, evec_2 = shape1[6][:, :self.n_fmap], shape2[6][:, :self.n_fmap]
         evec_1_a, evec_2_a = evec_1[vts1,:], evec_2[vts2,:]
         
         # TODO replace with torch.linalg version in future torch
-        solve_out = torch.lstsq(evec_2_a, evec_1_a)[0] 
+        solve_out = torch.linalg.lstsq(evec_2_a, evec_1_a)[0] 
         C_gt = solve_out[:evec_1_a.size(-1)].t()
         resids = solve_out[evec_1_a.size(-1):]
 
@@ -225,3 +254,4 @@ class FaustScapeDataset(Dataset):
         # resids = torch.tensor(solve_out[1])
         
         return (shape1, shape2, C_gt)
+

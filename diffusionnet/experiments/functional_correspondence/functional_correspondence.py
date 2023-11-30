@@ -25,7 +25,7 @@ parser = argparse.ArgumentParser()
 parser.add_argument("--evaluate", action="store_true", help="evaluate using the pretrained model")
 parser.add_argument("--train_dataset", type=str, default="faust", help="what dataset to train on")
 parser.add_argument("--test_dataset", type=str, default="faust", help="what dataset to test on")
-parser.add_argument("--input_features", type=str, help="what features to use as input ('xyz','hks' or 'shot') default: hks", default = 'hks')
+parser.add_argument("--input_features", type=str, help="what features to use as input ('xyz','hks', 'shot' or 'lps') default: hks (note: shot and lps only work for FAUST data)", default = 'hks')
 parser.add_argument("--load_model", type=str, help="path to load a pretrained model from")
 args = parser.parse_args()
 
@@ -34,7 +34,7 @@ device = torch.device('cuda')
 dtype = torch.float32
 
 # model 
-input_features = args.input_features # one of ['xyz', 'hks','shot']
+input_features = args.input_features # one of ['xyz', 'hks','shot', 'lps']
 k_eig = 128
 
 # functional maps settings
@@ -72,7 +72,7 @@ test_loader = torch.utils.data.DataLoader(test_dataset, batch_size=None, shuffle
 
 # === Create the model
 
-C_in={'xyz':3, 'hks':16, 'shot':672}[input_features] # dimension of input features
+C_in={'xyz':3, 'hks':16, 'shot':672, 'lps':48, 'mma':195}[input_features] # dimension of input features
 
 model = FunctionalMapCorrespondenceWithDiffusionNetFeatures(
                         n_feat=n_feat,
@@ -119,7 +119,15 @@ def train_epoch(epoch):
         shape1, shape2, C_gt = data
         *shape1, name1 = shape1
         *shape2, name2 = shape2
-        shape1, shape2, C_gt = [x.to(device) for x in shape1], [x.to(device) for x in shape2], C_gt.to(device).unsqueeze(0)
+        # print(f"Type of shape1: {(shape1[0]).dtype}")
+        # print(f"Len of shape1: {shape1.shape}")
+        # print(f"Type of C_gt: {type(C_gt)}")
+        # print("shape 1 is: ",shape1[0])
+        # print("shape 2 is: ",shape2)
+        # print("C_gt is: ",C_gt)
+        shape1 = [x.to(device) if torch.is_tensor(x) else x for x in shape1 ]
+        shape2 = [x.to(device) if torch.is_tensor(x) else x for x in shape2 ]
+        C_gt = C_gt.to(device).unsqueeze(0)
 
         # Randomly rotate positions
         if augment_random_rotate:
@@ -184,11 +192,11 @@ def test(with_geodesic_error=False):
                 verts1 = shape1[0]
                 faces1 = shape1[1]
                 evec1 = shape1[6]
-                vts1 = shape1[11]
+                vts1 = shape1[10]
                 verts2 = shape2[0]
                 faces2 = shape2[1]
                 evec2 = shape2[6]
-                vts2 = shape2[11]
+                vts2 = shape2[10]
 
                 # construct a vertex-to-vertex map via nearest neighbors from the functional map
                 evec1_on_2 = evec1[:,:n_fmap] @ C_pred.squeeze(0).transpose(0,1)
@@ -209,18 +217,24 @@ def test(with_geodesic_error=False):
 
     return mean_loss, mean_geodesic_error
 
-if train:
-    print("Training...")
+with open('training_results.txt', 'a') as file:
+    if train:
+        file.write("Training...\n")
 
-    for epoch in range(n_epoch):
-        train_loss = train_epoch(epoch)
-        test_loss, test_geodesic_error = test(with_geodesic_error=True)
-        print("Epoch {} - Train overall: {:.5e}  Test overall: {:.5e}  Test geodesic error: {:.5e}".format(epoch, train_loss, test_loss, test_geodesic_error))
+        for epoch in range(n_epoch):
+            train_loss = train_epoch(epoch)
+            test_loss, test_geodesic_error = test(with_geodesic_error=True)
+            epoch_result = "Epoch {} - Train overall: {:.5e}  Test overall: {:.5e}  Test geodesic error: {:.5e}\n".format(epoch, train_loss, test_loss, test_geodesic_error)
+            print(epoch_result)
+            file.write(epoch_result)
 
-        print(" ==> saving last model to " + model_save_path)
-        torch.save(model.state_dict(), model_save_path)
+            save_message = " ==> saving last model to " + model_save_path + "\n"
+            print(save_message)
+            file.write(save_message)
+            torch.save(model.state_dict(), model_save_path)
 
-
-# Test
-mean_loss, mean_geodesic_error = test(with_geodesic_error=True)
-print("Overall test accuracy: {:.5e}  geodesic error: {:.5e}".format(mean_loss, mean_geodesic_error))
+    # Test
+    mean_loss, mean_geodesic_error = test(with_geodesic_error=True)
+    test_result = "Overall test accuracy: {:.5e}  geodesic error: {:.5e}\n".format(mean_loss, mean_geodesic_error)
+    print(test_result)
+    file.write(test_result)

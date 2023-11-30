@@ -947,3 +947,4 @@ def get_all_pairs_geodesic_distance(verts_np, faces_np, geodesic_cache_dir=None)
                      )
 
     return result_dists
+
