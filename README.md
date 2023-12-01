@@ -3,8 +3,8 @@ Team 13 repository for [ML3D](https://mhsung.github.io/kaist-cs479-fall-2023/) c
 ## Introduction
 This is our project "Geometric Deep Learning for 3D Shape Correspondence".
 It explores several recent methods on 3D Shape correspondence, including: 
-- CNN methods with local operators e.g. Geodesic CNN [1] and MoNet[2]
-- methods evaluating functional maps on geometry e.g. Geometric Functional Maps [3] and
+- CNN methods with local operators e.g. [Geodesic CNN](https://github.com/andreasMazur/geoconv) [1] and [MoNet](https://github.com/sw-gong/MoNet/tree/master)[2].
+- methods evaluating functional maps on geometry e.g. [Geometric Functional Maps](https://github.com/LIX-shape-analysis/GeomFmaps) [3] and
 - our main focus (baseline method), [DiffusionNet](https://github.com/nmwsharp/diffusion-net/tree/master)[4].
 ## Code and Data
 The README in each folder explains the prerequisite development environment, code and data needed.
