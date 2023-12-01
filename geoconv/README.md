@@ -1,4 +1,4 @@
-# GeoConv
+# GeoConv [ORIGINAL REPOSITORY HERE](https://github.com/andreasMazur/geoconv/)
 
 **Geo**desic **conv**olutional neural networks belong to the category of intrinsic mesh CNNs [1].
 They operate directly on object surfaces, therefore expanding the application of convolutions
